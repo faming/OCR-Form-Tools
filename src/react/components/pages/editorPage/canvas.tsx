@@ -59,7 +59,7 @@ export interface ICanvasProps extends React.Props<Canvas> {
     onSelectedRegionsChanged?: (regions: IRegion[]) => void;
     onRegionDoubleClick?: (region: IRegion) => void;
     onCanvasRendered?: (canvas: HTMLCanvasElement) => void;
-    onRunningOCRStatusChanged?: (isRunning: boolean) => void;
+    onRunningOCRStatusChanged?: (ocrStatus: OcrStatus) => void;
     onRunningAutoLabelingStatusChanged?: (isRunning: boolean) => void;
     onTagChanged?: (oldTag: ITag, newTag: ITag) => void;
     runOcrForAllDocs?: (runForAllDocs: boolean) => void;
@@ -187,8 +187,7 @@ export default class Canvas extends React.Component<ICanvasProps, ICanvasState> 
     public componentDidUpdate = async (prevProps: Readonly<ICanvasProps>, prevState: Readonly<ICanvasState>) => {
         // Handles asset changing
         if (this.props.selectedAsset.asset.name !== prevProps.selectedAsset.asset.name ||
-            this.props.selectedAsset.asset.isRunningOCR !== prevProps.selectedAsset.asset.isRunningOCR ||
-            this.props.selectedAsset.asset.labelingState !== prevProps.selectedAsset.asset.labelingState
+            this.props.selectedAsset.asset.isRunningOCR !== prevProps.selectedAsset.asset.isRunningOCR
         ) {
             this.selectedRegionIds = [];
             this.imageMap.removeAllFeatures();
@@ -339,7 +338,7 @@ export default class Canvas extends React.Component<ICanvasProps, ICanvasState> 
                         Page {this.state.currentPage} of {this.state.numPages}
                     </p>
                 }
-                {this.state.ocrStatus !== OcrStatus.done &&
+                {(this.state.ocrStatus !== OcrStatus.done&&this.state.ocrStatus!==OcrStatus.doneButFailed) &&
                     <div className="canvas-ocr-loading">
                         <div className="canvas-ocr-loading-spinner">
                             <Label className="p-0" ></Label>
@@ -1203,7 +1202,7 @@ export default class Canvas extends React.Component<ICanvasProps, ICanvasState> 
     private setOCRStatus = (ocrStatus: OcrStatus) => {
         this.setState({ ocrStatus }, () => {
             if (this.props.onRunningOCRStatusChanged) {
-                this.props.onRunningOCRStatusChanged(ocrStatus === OcrStatus.runningOCR);
+                this.props.onRunningOCRStatusChanged(ocrStatus);
             }
         });
     }
@@ -1409,8 +1408,8 @@ export default class Canvas extends React.Component<ICanvasProps, ICanvasState> 
             region.tags.forEach((tag) => {
                 const label = labels.find(label => label.label === tag);
                 if (label) {
-                    const originLabel = this.props.selectedAsset!.labelData!.labels.find(a=>a.label === tag);
-                    if (label.confidence && region.changed) {
+                    const originLabel = this.props.selectedAsset!.labelData?.labels.find(a=>a.label === tag);
+                    if (originLabel&&label.confidence && region.changed) {
                         delete label.confidence;
                         label.revised = true;
                         label.originValue = [...originLabel.value];

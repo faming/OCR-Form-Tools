@@ -30,7 +30,7 @@ import "./editorPage.scss";
 import EditorSideBar from "./editorSideBar";
 import Alert from "../../common/alert/alert";
 import Confirm from "../../common/confirm/confirm";
-import { OCRService } from "../../../../services/ocrService";
+import { OCRService, OcrStatus } from "../../../../services/ocrService";
 import { throttle } from "../../../../common/utils";
 import { constants } from "../../../../common/constants";
 import PreventLeaving from "../../common/preventLeaving/preventLeaving";
@@ -553,9 +553,16 @@ export default class EditorPage extends React.Component<IEditorPageProps, IEdito
         const asset = { ...assetMetadata.asset };
 
         if (this.isTaggableAssetType(asset)) {
-            asset.state = _.get(assetMetadata, "labelData.labels.length", 0) > 0 ?
-                AssetState.Tagged :
-                AssetState.Visited;
+            const hasLabels=_.get(assetMetadata, "labelData.labels.length", 0) > 0;
+            if(hasLabels){
+                asset.state=AssetState.Tagged;
+            }
+            else if(asset.state!==AssetState.NotVisited){
+                asset.state=AssetState.Visited;
+            }
+            // asset.state = _.get(assetMetadata, "labelData.labels.length", 0) > 0 ?
+            //     AssetState.Tagged :
+            //     AssetState.Visited;
         } else if (asset.state === AssetState.NotVisited) {
             asset.state = AssetState.Visited;
         }
@@ -909,8 +916,14 @@ export default class EditorPage extends React.Component<IEditorPageProps, IEdito
         this.setState({ hoveredLabel: null });
     }
 
-    private onCanvasRunningOCRStatusChanged = (isCanvasRunningOCR: boolean) => {
-        this.setState({ isCanvasRunningOCR });
+    private onCanvasRunningOCRStatusChanged = (ocrStatus: OcrStatus) => {
+        if(this.state.selectedAsset&&this.state.selectedAsset.asset&&ocrStatus===OcrStatus.done){
+            this.updateAssetState({ id: this.state.selectedAsset.asset.id, isRunningOCR: false, assetState: AssetState.Visited })
+        }
+        else{
+            const isRunningOcr=ocrStatus===OcrStatus.runningOCR;
+            this.setState({ isCanvasRunningOCR:isRunningOcr });
+        }
     }
     private onCanvasRunningAutoLabelingStatusChanged = (isCanvasRunningAutoLabeling: boolean) => {
         this.setState({ isCanvasRunningAutoLabeling });

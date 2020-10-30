@@ -12,6 +12,7 @@ export enum OcrStatus {
     loadingFromAzureBlob,
     runningOCR,
     done,
+    doneButFailed,
 }
 
 /**
@@ -54,7 +55,12 @@ export class OCRService {
             notifyStatusChanged(OcrStatus.runningOCR);
             ocrJson = await this.fetchOcrUriResult(filePath, fileName, ocrFileName, mimeType);
         } finally {
-            notifyStatusChanged(OcrStatus.done);
+            if(ocrJson){
+                notifyStatusChanged(OcrStatus.done);
+            }
+            else{
+                notifyStatusChanged(OcrStatus.doneButFailed);
+            }
         }
         return ocrJson;
     }
